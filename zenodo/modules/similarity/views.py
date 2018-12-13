@@ -28,38 +28,102 @@ from __future__ import absolute_import, print_function
 
 from flask import Blueprint, Response, current_app, json, request, url_for, jsonify
 
+
+from zenodo.modules.records.fetchers import zenodo_record_fetcher
+from zenodo.modules.records.api import ZenodoRecord
+
 blueprint = Blueprint(
     'zenodo_similarity',
     __name__,
     url_prefix='',
 )
 
-@blueprint.route('/similarity/', methods=['GET', ])
+
+def _format_args():
+    """Get JSON dump indentation and separates."""
+    # Ensure we can run outside a application/request context.
+    try:
+        pretty_format = \
+            current_app.config['JSONIFY_PRETTYPRINT_REGULAR'] and \
+            not request.is_xhr
+    except RuntimeError:
+        pretty_format = False
+
+    if pretty_format:
+        return dict(
+            indent=2,
+            separators=(', ', ': '),
+        )
+    else:
+        return dict(
+            indent=None,
+            separators=(',', ':'),
+        )
+
+
+@blueprint.route('/similarity/', methods=['GET'])
 def index():
     """Demo endpoint."""
     return Response(
         json.dumps({
             'similarity': {
                 'geosoftware2': 'rocks'
-                }
-            },
+            }
+        },
             **_format_args()
         ),
         mimetype='application/json',
     )
 
+
+@blueprint.route('/records/<recid>/similar', methods=['GET'])
+def similar(recid):
+    """Get similar records."""
+
+    # get actual record, MAYBE with a combination of zenodo_record_fetcher and ZenodoRecord.get_record(recid.object_uuid)
+
+    return Response(
+        json.dumps({
+            'record': recid,
+            'similar': [
+                {
+                    'id': 'a',
+                    'similarity': 0.9
+                },
+                {
+                    'id': 'c',
+                    'similarity': 0.85
+                },
+                {
+                    'id': 'f',
+                    'similarity': 0.4
+                }
+            ]
+        },
+            **_format_args()
+        ),
+        mimetype='application/json',
+    )
+
+
 @blueprint.route(
-    '/lala/',
+    '/otherendpoint/<someidentifier>/',
     methods=['GET']
 )
-def test():
-    """Suggest a language on the deposit form."""
+def testendpoint(someidentifier):
+    """Return jsonify output and log input."""
+    print('id: %s' % someidentifier)
+
+    values = request.args.to_dict()
+    current_app.logger.warning('not really a warning', extra=values)
+    params = request.args.getlist('myparams')
+    for p in params:
+        current_app.logger.debug(u'my param: {}', p)
     #q = request.args.get('q', '')
     #limit = int(request.args.get('limit', '5').lower())
     #langs = suggest_language(q, limit=limit)
     #langs = [{'code': l.alpha_3, 'name': l.name} for l in langs]
     d = {
-        'suggestions': [1,2,3]
+        'data': [1, 2, 3]
     }
     return jsonify(d)
-
